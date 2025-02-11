@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>专业简历生成器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- // 从本地导入 html2canvas.min.js -->
+    <script src="html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', '微软雅黑', sans-serif;
+            max-width: 210mm; /* A4尺寸 */
+            margin: 20px auto;
+            background: #f5f6fa;
+        }
+
+        .resume-container {
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 40px;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .name {
+            font-size: 2.5em;
+            color: var(--primary-color);
+            letter-spacing: 2px;
+        }
+
+        .contact-info {
+            text-align: right;
+            color: #666;
+        }
+
+        .contact-item {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section {
+            margin: 25px 0;
+        }
+
+        .section-title {
+            color: var(--secondary-color);
+            border-left: 4px solid var(--accent-color);
+            padding-left: 15px;
+            margin: 25px 0;
+            font-size: 1.4em;
+        }
+
+        .timeline-item {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            margin: 20px 0;
+            padding-left: 20px;
+            border-left: 2px solid #eee;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .skill-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .project-item {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .download-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--secondary-color);
+            padding: 12px 25px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button class="download-btn" style="position: static; margin: 0 10px;" onclick="generateResume()">
+            <i class="fas fa-sync"></i> 随机生成
+        </button>
+        <button class="download-btn" style="position: static; margin: 0 10px;" onclick="downloadPDF()">
+            <i class="fas fa-download"></i> 导出PDF
+        </button>
+    </div>
+
+    <div class="resume-container" id="resumeContent">
+        <!-- 简历内容将通过JavaScript动态生成 -->
+    </div>
+
+    <script>
+        const randomData = {
+            names: ["王浩然", "陈思雨", "张明哲", "李若曦", "周子轩"],
+            positions: ["全栈工程师", "数据科学家", "产品总监", "UX设计师", "AI研究员"],
+            companies: ["字节跳动", "腾讯科技", "阿里巴巴集团", "华为技术", "微软亚洲研究院"],
+            educations: [
+                { degree: "计算机科学硕士", school: "清华大学", gpa: "3.8/4.0" },
+                { degree: "电子工程博士", school: "北京大学", gpa: "3.9/4.0" },
+                { degree: "工商管理硕士", school: "中欧国际工商学院", gpa: "3.7/4.0" }
+            ],
+            skills: [
+                { name: "Python", level: 5 },
+                { name: "React", level: 4 },
+                { name: "TensorFlow", level: 4 },
+                { name: "AWS", level: 4 },
+                { name: "MySQL", level: 5 },
+                { name: "项目管理", level: 5 }
+            ],
+            projects: [
+                "基于深度学习的图像识别系统开发",
+                "千万级用户平台的微服务架构重构",
+                "智能客服系统的设计与实现",
+                "大数据分析平台性能优化",
+                "跨平台移动应用开发项目"
+            ],
+            certificates: ["PMP认证", "AWS认证专家", "CET-6 620分", "全国计算机等级四级"],
+            languages: [
+                { name: "中文", level: "母语" },
+                { name: "英语", level: "流利（TOEFL 110）" },
+                { name: "日语", level: "商务沟通（JLPT N2）" }
+            ]
+        };
+
+        function generateResume() {
+            const person = {
+                name: randomData.names[Math.floor(Math.random() * randomData.names.length)],
+                phone: `13${Math.floor(100000000 + Math.random() * 900000000)}`,
+                email: `${pinyinName().toLowerCase()}@proton.me`,
+                address: `${["北京", "上海", "深圳", "杭州"][Math.floor(Math.random()*4)]}市`,
+                experience: Math.floor(Math.random()*5)+3,
+                education: randomData.educations[Math.floor(Math.random()*randomData.educations.length)],
+                company: randomData.companies[Math.floor(Math.random()*randomData.companies.length)]
+            };
+
+            const resumeHTML = `
+                <div class="header">
+                    <div>
+                        <h1 class="name">${person.name}</h1>
+                        <h3>${randomData.positions[Math.floor(Math.random()*randomData.positions.length)]}</h3>
+                    </div>
+                    <div class="contact-info">
+                        <div class="contact-item"><i class="fas fa-phone"></i> ${person.phone}</div>
+                        <div class="contact-item"><i class="fas fa-envelope"></i> ${person.email}</div>
+                        <div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${person.address}</div>
+                        <div class="contact-item"><i class="fab fa-github"></i> github.com/${pinyinName()}</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title"><i class="fas fa-user-tie"></i> 个人简介</h2>
+                    <p>具有 ${person.experience} 年经验的${person.education.degree}，擅长全栈开发与系统架构设计。在${person.company}主导过多个千万级用户项目，具有丰富的${["云计算平台", "AI系统", "大数据分析", "移动应用"][Math.floor(Math.random()*4)]}开发经验。</p>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title"><i class="fas fa-briefcase"></i> 工作经历</h2>
+                    <div class="timeline-item">
+                        <div>2020-至今</div>
+                        <div>
+                            <h3>${person.company} - 高级${randomData.positions[0]}</h3>
+                            <ul>
+                                <li>领导${Math.floor(Math.random()*5)+3}人团队完成${randomData.projects[0]}开发</li>
+                                <li>系统性能优化，响应速度提升${Math.floor(Math.random()*40)+30}%</li>
+                                <li>采用${["微服务架构", "Serverless方案", "DDD设计", "CI/CD流程"][Math.floor(Math.random()*4)]}改进系统</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title"><i class="fas fa-graduation-cap"></i> 教育背景</h2>
+                    <div class="timeline-item">
+                        <div>${person.education.school}</div>
+                        <div>
+                            <h3>${person.education.degree}</h3>
+                            <p>GPA ${person.education.gpa} | 校级${["一等奖学金", "优秀毕业生", "创新大赛冠军"][Math.floor(Math.random()*3)]}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title"><i class="fas fa-code"></i> 技术能力</h2>
+                    <div class="skills-grid">
+                        ${randomData.skills.sort(() => 0.5-Math.random()).map(skill => `
+                            <div class="skill-item">
+                                <div style="flex:1">${skill.name}</div>
+                                <div class="stars">${'★'.repeat(skill.level)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title"><i class="fas fa-project-diagram"></i> 项目经验</h2>
+                    ${randomData.projects.sort(() => 0.5-Math.random()).slice(0,3).map(project => `
+                        <div class="project-item">
+                            <h3>${project}</h3>
+                            <p>${["主导开发", "参与设计", "负责优化"][Math.floor(Math.random()*3)]}，采用${["React+Node.js", "Python+Django", "Java+Spring Cloud"][Math.floor(Math.random()*3)]}技术栈...</p>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title"><i class="fas fa-award"></i> 证书与荣誉</h2>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        ${randomData.certificates.sort(() => 0.5-Math.random()).slice(0,3).map(cert => `
+                            <div style="background: #f8f9fa; padding: 10px 20px; border-radius: 5px;">
+                                <i class="fas fa-certificate"></i> ${cert}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resumeContent').innerHTML = resumeHTML;
+        }
+
+        function pinyinName() {
+            const names = ["wanghaoran", "chensiyu", "zhangmingzhe", "liruoxi", "zhouzixuan"];
+            return names[Math.floor(Math.random()*names.length)];
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('resumeContent');
+            const name = element.querySelector('.name').textContent;
+            const position = element.querySelector('.name + h3').textContent;
+            
+            // 获取实际内容高度
+            const elementHeight = element.offsetHeight;
+            const elementWidth = element.offsetWidth;
+            
+            html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                windowHeight: elementHeight,
+                height: elementHeight,
+                width: elementWidth
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const pdf = new jspdf.jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                // 如果内容超过一页，自动添加新页
+                if (pdfHeight > pdf.internal.pageSize.getHeight()) {
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    let heightLeft = pdfHeight;
+                    let position = 0;
+                    let page = 1;
+
+                    while (heightLeft > 0) {
+                        if (page > 1) {
+                            pdf.addPage();
+                        }
+                        pdf.addImage(imgData, 'JPEG', 0, -position, pdfWidth, pdfHeight);
+                        heightLeft -= pageHeight;
+                        position += pageHeight;
+                        page++;
+                    }
+                } else {
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                }
+                
+                pdf.save(`${name}-${position}.pdf`);
+            });
+        }
+
+        generateResume();
+    </script>
+</body>
+</html>
